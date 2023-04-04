@@ -1,0 +1,9 @@
+[submodule "svenmod"]
+	path = svenmod
+	url = https://github.com/sw1ft747/svenmod.git
+[submodule "freetype"]
+	path = freetype
+	url = https://github.com/freetype/freetype.git
+[submodule "freetype-bin"]
+	path = lib/freetype
+	url = https://github.com/ubawurinna/freetype-windows-binaries.git
