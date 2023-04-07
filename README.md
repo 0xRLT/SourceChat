@@ -24,7 +24,7 @@ sourcechat_monsterinfo_height_fraction | 0.8 | float | Text message's height fra
 
 # Console Commands
 ConCommand | Description
---- | --- | ---
+--- | ---
 sourcechat_clear | Clear Source-like chat
 
 # Known issues
