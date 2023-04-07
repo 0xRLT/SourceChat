@@ -148,6 +148,7 @@ private:
 	// Detour members
 	void *m_pfnKey_Event;
 	void *m_pfnIN_Move;
+	void *m_pfnCHudTextMessage__MsgFunc_TextMsg;
 #if IMGUI_USE_SDL
 	void *m_pfnSDL_PollEvent;
 	void *m_pfnSDL_GL_SwapWindow;

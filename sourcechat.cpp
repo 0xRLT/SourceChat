@@ -51,6 +51,8 @@ DECLARE_HOOK( BOOL, WINAPI, SetCursorPos, int, int );
 DECLARE_HOOK( void, __cdecl, Key_Event, int, int );
 DECLARE_HOOK( void, __cdecl, IN_Move, float, usercmd_t * );
 
+DECLARE_CLASS_HOOK( int, CHudTextMessage__MsgFunc_TextMsg, void *, const char *, int, void * );
+
 CommandCallbackFn ORIG_messagemode = NULL;
 CommandCallbackFn ORIG_messagemode2 = NULL;
 
@@ -293,10 +295,18 @@ DECLARE_FUNC( int, __cdecl, UserMsgHook_SayText, const char *pszUserMsg, int iSi
 // Purpose: intercept incoming chat messages
 //-----------------------------------------------------------------------------
 
+#if 0
 DECLARE_FUNC( int, __cdecl, UserMsgHook_TextMsg, const char *pszUserMsg, int iSize, void *pBuffer )
+#else
+DECLARE_CLASS_FUNC( int, HOOKED_CHudTextMessage__MsgFunc_TextMsg, void *thisptr, const char *pszUserMsg, int iSize, void *pBuffer )
+#endif
 {
 	if ( !sourcechat.GetBool() )
+	#if 0
 		return ORIG_UserMsgHook_TextMsg( pszUserMsg, iSize, pBuffer );
+	#else
+			return ORIG_CHudTextMessage__MsgFunc_TextMsg( thisptr, pszUserMsg, iSize, pBuffer );
+	#endif
 
 	CMessageBuffer message( pBuffer, iSize, true );
 
@@ -362,7 +372,11 @@ DECLARE_FUNC( int, __cdecl, UserMsgHook_TextMsg, const char *pszUserMsg, int iSi
 		return 0;
 	}
 
+#if 0
 	return ORIG_UserMsgHook_TextMsg( pszUserMsg, iSize, pBuffer );
+#else
+	return ORIG_CHudTextMessage__MsgFunc_TextMsg( thisptr, pszUserMsg, iSize, pBuffer );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1604,6 +1618,7 @@ bool CSourceChat::Load( void )
 	DEFINE_PATTERNS_FUTURE( fm_pSoundEngine );
 	DEFINE_PATTERNS_FUTURE( fIN_Move );
 	DEFINE_PATTERNS_FUTURE( fGetClientColor );
+	DEFINE_PATTERNS_FUTURE( fCHudTextMessage__MsgFunc_TextMsg );
 	DEFINE_PATTERNS_FUTURE( fCClient_SoundEngine__Play2DSound );
 	DEFINE_PATTERNS_FUTURE( fGetClientVoiceMgr );
 	DEFINE_PATTERNS_FUTURE( fCVoiceStatus__IsPlayerBlocked );
@@ -1613,6 +1628,7 @@ bool CSourceChat::Load( void )
 	MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::m_pSoundEngine, fm_pSoundEngine );
 	MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::IN_Move, fIN_Move );
 	MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::GetClientColor, fGetClientColor );
+	MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::CHudTextMessage__MsgFunc_TextMsg, fCHudTextMessage__MsgFunc_TextMsg );
 	MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::CClient_SoundEngine__Play2DSound, fCClient_SoundEngine__Play2DSound );
 	MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::GetClientVoiceMgr, fGetClientVoiceMgr );
 	MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::CVoiceStatus__IsPlayerBlocked, fCVoiceStatus__IsPlayerBlocked );
@@ -1655,6 +1671,16 @@ bool CSourceChat::Load( void )
 	else
 	{
 		DevMsg( "[Source Chat] Found function \"GetClientColor\" for version \"%s\"\n", GET_PATTERN_NAME_BY_INDEX( Patterns::Client::GetClientColor, patternIndex ) );
+	}
+	
+	if ( ( m_pfnCHudTextMessage__MsgFunc_TextMsg = MemoryUtils()->GetPatternFutureValue( fCHudTextMessage__MsgFunc_TextMsg, &patternIndex ) ) == NULL )
+	{
+		Warning("[Source Chat] Couldn't find function \"CHudTextMessage::MsgFunc_TextMsg\"\n");
+		ScanOK = false;
+	}
+	else
+	{
+		DevMsg( "[Source Chat] Found function \"CHudTextMessage::MsgFunc_TextMsg\" for version \"%s\"\n", GET_PATTERN_NAME_BY_INDEX( Patterns::Client::CHudTextMessage__MsgFunc_TextMsg, patternIndex ) );
 	}
 	
 	if ( ( m_pfnCClient_SoundEngine__Play2DSound = (CClient_SoundEngine__Play2DSoundFn)MemoryUtils()->GetPatternFutureValue( fCClient_SoundEngine__Play2DSound, &patternIndex ) ) == NULL )
@@ -1792,7 +1818,8 @@ void CSourceChat::PostLoad( void )
 	m_hMessageMode2 = Hooks()->HookConsoleCommand( "messagemode2", HOOKED_messagemode2, &ORIG_messagemode2 );
 
 	m_hUserMsgHook_SayText = Hooks()->HookUserMessage( "SayText", UserMsgHook_SayText, &ORIG_UserMsgHook_SayText );
-	m_hUserMsgHook_TextMsg = Hooks()->HookUserMessage( "TextMsg", UserMsgHook_TextMsg, &ORIG_UserMsgHook_TextMsg );
+	//m_hUserMsgHook_TextMsg = Hooks()->HookUserMessage( "TextMsg", UserMsgHook_TextMsg, &ORIG_UserMsgHook_TextMsg );
+	m_hUserMsgHook_TextMsg = DetoursAPI()->DetourFunction( m_pfnCHudTextMessage__MsgFunc_TextMsg, HOOKED_CHudTextMessage__MsgFunc_TextMsg, GET_FUNC_PTR( ORIG_CHudTextMessage__MsgFunc_TextMsg ) );
 
 	m_hNetMsgHook_TempEntity = Hooks()->HookNetworkMessage( SVC_TEMPENTITY, NetMsgHook_TempEntity, &ORIG_NetMsgHook_TempEntity );
 
@@ -1815,7 +1842,8 @@ void CSourceChat::Unload( void )
 	Hooks()->UnhookConsoleCommand( m_hMessageMode2 );
 
 	Hooks()->UnhookUserMessage( m_hUserMsgHook_SayText );
-	Hooks()->UnhookUserMessage( m_hUserMsgHook_TextMsg );
+	//Hooks()->UnhookUserMessage( m_hUserMsgHook_TextMsg );
+	DetoursAPI()->RemoveDetour( m_hUserMsgHook_TextMsg );
 
 	Hooks()->UnhookNetworkMessage( m_hNetMsgHook_TempEntity );
 

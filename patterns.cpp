@@ -28,6 +28,10 @@ namespace Patterns
 						   "5.25 Hooked",
 						   "E9 ? ? ? ? 90 7E 35 6B C1 ? 0F BF 80 ? ? ? ? 48 83 F8 03" );
 
+		DEFINE_PATTERNS_1( CHudTextMessage__MsgFunc_TextMsg,
+						   "5.25",
+						   "53 55 56 57 FF 74 24 18 FF 74 24 20" );
+		
 		DEFINE_PATTERNS_2( CClient_SoundEngine__Play2DSound,
 						   "5.25",
 						   "83 EC ? F3 0F 10 44 24 14",
