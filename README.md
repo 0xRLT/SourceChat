@@ -9,7 +9,7 @@ It would not have been so feaseable to do it without SvenMod, so check it out!
 # Config
 When the plugin is loading, it will execute file `sourcechat.cfg` from folder `../Sven Co-op/svencoop/`, you can use this config file to save some console variables for customization
 
-# Console Commands
+# Console Variables
 ConVar | Default Value | Type | Description
 --- | --- | --- | ---
 sourcechat | 1 | bool | Enable/disable Source-like chat
@@ -28,7 +28,7 @@ ConCommand | Description
 sourcechat_clear | Clear Source-like chat
 
 # Known issues
-* The chat has been done for 1080p resolution and not adaptive for smaller or bigger ones resolutions, it means small screens the chatbox will be too big for you and vice versa for big screens
+* The chat has been done for 1080p resolution and not (yet) adaptive for smaller or bigger ones resolutions, it means that small screens of the chatbox will be too big for you and vice versa for big screens
 * Text fading is not finished yet, it may appear buggy
 * Sometimes selected text in the history box shifts to the left (same for input line)
 * Some fade in/out durations can cause the chatbox to flicker
