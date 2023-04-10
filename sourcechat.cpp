@@ -1564,10 +1564,11 @@ void CSourceChat::InitFont( void )
 
 	// Merge m_pFont with font Arial Unicode MS
 	cfg.MergeMode = true;
+	cfg.OversampleH = 2;
 
-	if ( io.Fonts->AddFontFromFileTTF( "svencoop/resource/sourcechat/ARIALUNI.ttf", ChatSchemeActive.FontUnicodeSize, &cfg, ranges ) == NULL )
+	if ( io.Fonts->AddFontFromFileTTF( "svencoop/resource/sourcechat/ARIALUNI.otf", ChatSchemeActive.FontUnicodeSize, &cfg, ranges ) == NULL )
 	{
-		Sys_Error( "Unable to load font \"../svencoop/resource/sourcechat/ARIALUNI.ttf\"" );
+		Sys_Error( "Unable to load font \"../svencoop/resource/sourcechat/ARIALUNI.otf\"" );
 		return;
 	}
 
@@ -1836,6 +1837,7 @@ void CSourceChat::PostLoad( void )
 void CSourceChat::Unload( void )
 {
 	ImGui::GetIO().Fonts->ClearTexData();
+	ImGui::GetIO().Fonts->ClearFonts();
 	ImGui::GetIO().Fonts->Clear();
 
 	DetoursAPI()->RemoveDetour( m_hKey_Event );
