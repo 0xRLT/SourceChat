@@ -1835,6 +1835,9 @@ void CSourceChat::PostLoad( void )
 
 void CSourceChat::Unload( void )
 {
+	ImGui::GetIO().Fonts->ClearTexData();
+	ImGui::GetIO().Fonts->Clear();
+
 	DetoursAPI()->RemoveDetour( m_hKey_Event );
 	DetoursAPI()->RemoveDetour( m_hIN_Move );
 
