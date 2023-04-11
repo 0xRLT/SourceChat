@@ -888,7 +888,13 @@ void CSourceChat::PrintMessage( int client, const char *pszMessage, int src )
 	const char *pszMessagePos;
 	float *pflClientColor = m_pfnGetClientColor( client );
 
-	pszMessagePos = PushMessageToBuffer( m_szHistoryBuffer, CHAT_HISTORY_BUFFER_SIZE - 1, pszMessage, &shiftQuantity );
+	std::string sMessage = pszMessage;
+
+	// Fix string without new line symbol
+	if ( sMessage.back() != '\n' )
+		sMessage += "\n";
+
+	pszMessagePos = PushMessageToBuffer( m_szHistoryBuffer, CHAT_HISTORY_BUFFER_SIZE - 1, sMessage.c_str(), &shiftQuantity);
 
 	if ( shiftQuantity > 0 )
 	{
@@ -905,7 +911,7 @@ void CSourceChat::PrintMessage( int client, const char *pszMessage, int src )
 	{
 	case 0: // just message from the Server
 	{
-		ConColorMsg( Color( m_flTextHistoryDefaultColor[ 0 ], m_flTextHistoryDefaultColor[ 1 ], m_flTextHistoryDefaultColor[ 2 ], 1.f ), pszMessage );
+		ConColorMsg( Color( m_flTextHistoryDefaultColor[ 0 ], m_flTextHistoryDefaultColor[ 1 ], m_flTextHistoryDefaultColor[ 2 ], 1.f ), sMessage.c_str() );
 		AddTextColor( pszMessagePos, m_flTextHistoryDefaultColor );
 
 		break;
@@ -916,7 +922,7 @@ void CSourceChat::PrintMessage( int client, const char *pszMessage, int src )
 		const char *pszMessageSender = "<Server Console>";
 
 		ConColorMsg( Color( pflClientColor[ 0 ], pflClientColor[ 1 ], pflClientColor[ 2 ], 1.f ), pszMessageSender );
-		ConColorMsg( Color( m_flTextHistoryDefaultColor[ 0 ], m_flTextHistoryDefaultColor[ 1 ], m_flTextHistoryDefaultColor[ 2 ], 1.f ), pszMessage + strlen( pszMessageSender ) );
+		ConColorMsg( Color( m_flTextHistoryDefaultColor[ 0 ], m_flTextHistoryDefaultColor[ 1 ], m_flTextHistoryDefaultColor[ 2 ], 1.f ), sMessage.c_str() + strlen( pszMessageSender ) );
 
 		AddTextColor( pszMessagePos, pflClientColor );
 		AddTextColor( pszMessagePos + strlen( pszMessageSender ) + 1, m_flTextHistoryDefaultColor );
@@ -926,11 +932,6 @@ void CSourceChat::PrintMessage( int client, const char *pszMessage, int src )
 
 	case 2: // message from the Player
 	{
-		auto CStringStartsWith = [](const char *str, const char *prefix) -> bool
-		{
-			return strncmp( prefix, str, strlen( prefix ) ) == 0;
-		};
-
 		player_info_t *pPlayerInfo = g_pEngineStudio->PlayerInfo( client - 1 );
 
 		if ( pPlayerInfo != NULL )
@@ -938,12 +939,13 @@ void CSourceChat::PrintMessage( int client, const char *pszMessage, int src )
 			std::string sMessageSender = pPlayerInfo->name;
 			sMessageSender += ":";
 
-			if ( CStringStartsWith( pszMessage, sMessageSender.c_str() ) )
+			// sMessage starts with sMessageSender
+			if ( strncmp( sMessageSender.c_str(), sMessage.c_str(), strlen( sMessageSender.c_str() ) ) == 0 )
 			{
 				sMessageSender[ sMessageSender.length() - 1 ] = '\0';
 
 				ConColorMsg( Color( pflClientColor[ 0 ], pflClientColor[ 1 ], pflClientColor[ 2 ], 1.f ), sMessageSender.c_str() );
-				ConColorMsg( Color( m_flTextHistoryDefaultColor[ 0 ], m_flTextHistoryDefaultColor[ 1 ], m_flTextHistoryDefaultColor[ 2 ], 1.f ), pszMessage + sMessageSender.length() - 1 );
+				ConColorMsg( Color( m_flTextHistoryDefaultColor[ 0 ], m_flTextHistoryDefaultColor[ 1 ], m_flTextHistoryDefaultColor[ 2 ], 1.f ), sMessage.c_str() + sMessageSender.length() - 1 );
 
 				sMessageSender[ sMessageSender.length() - 1 ] = ':';
 
@@ -965,7 +967,7 @@ void CSourceChat::PrintMessage( int client, const char *pszMessage, int src )
 				sMessageSender[ sMessageSender.length() - 1 ] = '\0';
 
 				ConColorMsg( Color( pflClientColor[ 0 ], pflClientColor[ 1 ], pflClientColor[ 2 ], 1.f ), sMessageSender.c_str() );
-				ConColorMsg( Color( m_flTextHistoryDefaultColor[ 0 ], m_flTextHistoryDefaultColor[ 1 ], m_flTextHistoryDefaultColor[ 2 ], 1.f ), pszMessage + sMessageSender.length() - 1 );
+				ConColorMsg( Color( m_flTextHistoryDefaultColor[ 0 ], m_flTextHistoryDefaultColor[ 1 ], m_flTextHistoryDefaultColor[ 2 ], 1.f ), sMessage.c_str() + sMessageSender.length() - 1 );
 
 				sMessageSender[ sMessageSender.length() - 1 ] = ':';
 
@@ -987,7 +989,7 @@ void CSourceChat::PrintMessage( int client, const char *pszMessage, int src )
 			sMessageSender += pPlayerInfo->name;
 
 			ConColorMsg( Color( pflClientColor[ 0 ], pflClientColor[ 1 ], pflClientColor[ 2 ], 1.f ), sMessageSender.c_str() );
-			ConColorMsg( Color( m_flTextHistoryDefaultColor[ 0 ], m_flTextHistoryDefaultColor[ 1 ], m_flTextHistoryDefaultColor[ 2 ], 1.f ), pszMessage + sMessageSender.length() );
+			ConColorMsg( Color( m_flTextHistoryDefaultColor[ 0 ], m_flTextHistoryDefaultColor[ 1 ], m_flTextHistoryDefaultColor[ 2 ], 1.f ), sMessage.c_str() + sMessageSender.length() );
 
 			AddTextColor( pszMessagePos, pflClientColor );
 			AddTextColor( pszMessagePos + sMessageSender.length() + 1, m_flTextHistoryDefaultColor );
