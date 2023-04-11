@@ -28,7 +28,8 @@ ConCommand | Description
 sourcechat_clear | Clear Source-like chat
 
 # Known issues
-* The chat has been done for 1080p resolution and not (yet) adaptive for smaller or bigger ones resolutions, it means that small screens of the chatbox will be too big for you and vice versa for big screens
+* Some incoming messages may crash the game
+* The chat has been done for 1080p resolution and not (yet) adaptive for smaller or bigger ones resolutions, it means that on small screens the chatbox will be too big for you and vice versa for big screens
 * Text fading is not finished yet, it may appear buggy
 * Sometimes selected text in the history box shifts to the left (same for input line)
 * Some fade in/out durations can cause the chatbox to flicker
