@@ -9,6 +9,8 @@
 
 #include <hl_sdk/common/protocol.h>
 
+#include "imm/public/IMuteManager.h"
+
 #include "sourcechat.h"
 #include "patterns.h"
 #include "chat_scheme.h"
@@ -877,7 +879,28 @@ void CSourceChat::PrintMessage( int client, const char *pszMessage, int src )
 
 		if ( pszLevelName && *pszLevelName && pLocal && pLocal->index != client )
 		{
-			if ( m_pfnCVoiceStatus__IsPlayerBlocked( m_pfnGetClientVoiceMgr(), client ) )
+			IMuteManager *pMuteManager = NULL;
+			CreateInterfaceFn ImmFactory = Sys_GetFactory( Sys_GetModuleHandle( "improved_mute_manager.dll" ) );
+			
+			pMuteManager = reinterpret_cast<IMuteManager *>( ImmFactory( MUTE_MANAGER_INTERFACE_VERSION, NULL ) );
+
+			if ( pMuteManager != NULL )
+			{
+				bool bSkipMessage = false;
+
+				pMuteManager->SetInsideChat( true );
+
+				if ( m_pfnCVoiceStatus__IsPlayerBlocked( m_pfnGetClientVoiceMgr(), client ) )
+				{
+					bSkipMessage = true;
+				}
+
+				pMuteManager->SetInsideChat( false );
+
+				if ( bSkipMessage )
+					return;
+			}
+			else if ( m_pfnCVoiceStatus__IsPlayerBlocked( m_pfnGetClientVoiceMgr(), client ) )
 			{
 				return;
 			}

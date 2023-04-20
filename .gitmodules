@@ -7,3 +7,6 @@
 [submodule "freetype-bin"]
 	path = lib/freetype
 	url = https://github.com/ubawurinna/freetype-windows-binaries.git
+[submodule "imm"]
+	path = imm
+	url = https://github.com/sw1ft747/ImprovedMuteManager.git
