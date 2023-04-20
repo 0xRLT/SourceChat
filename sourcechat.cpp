@@ -881,10 +881,8 @@ void CSourceChat::PrintMessage( int client, const char *pszMessage, int src )
 		{
 			IMuteManager *pMuteManager = NULL;
 			CreateInterfaceFn ImmFactory = Sys_GetFactory( Sys_GetModuleHandle( "improved_mute_manager.dll" ) );
-			
-			pMuteManager = reinterpret_cast<IMuteManager *>( ImmFactory( MUTE_MANAGER_INTERFACE_VERSION, NULL ) );
 
-			if ( pMuteManager != NULL )
+			if ( ImmFactory != NULL && ( pMuteManager = reinterpret_cast<IMuteManager *>( ImmFactory( MUTE_MANAGER_INTERFACE_VERSION, NULL ) ) ) != NULL )
 			{
 				bool bSkipMessage = false;
 
