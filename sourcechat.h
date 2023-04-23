@@ -99,6 +99,8 @@ public:
 	inline WNDPROC GetGameWindowProc( void ) const { return m_hGameWndProc; };
 #endif
 
+	float GetTime() const;
+
 	inline bool IsOpened_Internal( void ) const { return m_bOpened; };
 	inline bool IsTeamChat_Internal( void ) const { return m_bTeamChat; };
 
@@ -144,6 +146,7 @@ private:
 	CVoiceStatus__IsPlayerBlockedFn m_pfnCVoiceStatus__IsPlayerBlocked;
 
 	void **m_pSoundEngine;
+	double *m_dbRealtime;
 
 	// Detour members
 	void *m_pfnKey_Event;

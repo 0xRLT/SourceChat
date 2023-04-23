@@ -11,6 +11,7 @@
 
 #include "imm/public/IMuteManager.h"
 
+#include "plugin.h"
 #include "sourcechat.h"
 #include "patterns.h"
 #include "chat_scheme.h"
@@ -269,7 +270,7 @@ DECLARE_FUNC( int, __cdecl, UserMsgHook_SayText, const char *pszUserMsg, int iSi
 {
 	if ( !sourcechat.GetBool() )
 		return ORIG_UserMsgHook_SayText( pszUserMsg, iSize, pBuffer );
-	
+
 	CMessageBuffer message( pBuffer, iSize, true );
 
 	int src;
@@ -289,7 +290,7 @@ DECLARE_FUNC( int, __cdecl, UserMsgHook_SayText, const char *pszUserMsg, int iSi
 
 	if ( pszMessage[ 0 ] != '\0' )
 		g_SourceChat.PrintMessage( client, pszMessage, src );
-	
+
 	return 0;
 }
 
@@ -307,7 +308,7 @@ DECLARE_CLASS_FUNC( int, HOOKED_CHudTextMessage__MsgFunc_TextMsg, void *thisptr,
 	#if 0
 		return ORIG_UserMsgHook_TextMsg( pszUserMsg, iSize, pBuffer );
 	#else
-			return ORIG_CHudTextMessage__MsgFunc_TextMsg( thisptr, pszUserMsg, iSize, pBuffer );
+		return ORIG_CHudTextMessage__MsgFunc_TextMsg( thisptr, pszUserMsg, iSize, pBuffer );
 	#endif
 
 	CMessageBuffer message( pBuffer, iSize, true );
@@ -326,19 +327,19 @@ DECLARE_CLASS_FUNC( int, HOOKED_CHudTextMessage__MsgFunc_TextMsg, void *thisptr,
 
 		if ( *str != '\0' )
 			formattingStrings.push_back( str );
-		
+
 		// #2
 		str = message.ReadString();
 
 		if ( *str != '\0' )
 			formattingStrings.push_back( str );
-		
+
 		// #3
 		str = message.ReadString();
 
 		if ( *str != '\0' )
 			formattingStrings.push_back( str );
-		
+
 		// #4
 		str = message.ReadString();
 
@@ -370,7 +371,7 @@ DECLARE_CLASS_FUNC( int, HOOKED_CHudTextMessage__MsgFunc_TextMsg, void *thisptr,
 
 		if ( buffer[ 0 ] != '\0' )
 			g_SourceChat.PrintMessage( -1, buffer, 0 );
-		
+
 		return 0;
 	}
 
@@ -434,7 +435,7 @@ void NetMsgHook_TempEntity( void )
 	// set x
 	coords_offset += 1; // skip entity type, channel
 	*(short *)( buffer->data + coords_offset ) = FixedSigned16( x, 1 << 13 );
-	
+
 	// set y
 	coords_offset += 2; // skip x
 	*(short *)( buffer->data + coords_offset ) = FixedSigned16( y, 1 << 13 );
@@ -486,6 +487,7 @@ CSourceChat::CSourceChat()
 	m_pfnCVoiceStatus__IsPlayerBlocked = NULL;
 
 	m_pSoundEngine = NULL;
+	m_dbRealtime = NULL;
 
 	// Detour members
 	m_pfnKey_Event = NULL;
@@ -550,12 +552,22 @@ void CSourceChat::OnDisconnect()
 }
 
 //-----------------------------------------------------------------------------
+// Purpose: get current time
+//-----------------------------------------------------------------------------
+
+float CSourceChat::GetTime() const
+{
+	return (float)*m_dbRealtime;
+	//return g_pEngineFuncs->GetClientTime();
+}
+
+//-----------------------------------------------------------------------------
 // Purpose: draw chat
 //-----------------------------------------------------------------------------
 
 void CSourceChat::Draw( void )
 {
-	m_flCurrentTime = g_pEngineFuncs->GetClientTime();
+	m_flCurrentTime = GetTime();
 
 	ImGui::GetIO().MouseDrawCursor = m_bOpened;
 	ImGui::DisableCursorBlinking = !m_bOpened;
@@ -656,10 +668,10 @@ void CSourceChat::DrawTextHistory( void )
 
 	ImGui::PushStyleColor( ImGuiCol_ScrollbarBg, ColorSchemeActive.ScrollbarBg );
 	ImGui::PushStyleColor( ImGuiCol_ScrollbarGrab, ColorSchemeActive.ScrollbarGrab );
-	ImGui::PushStyleColor( ImGuiCol_ScrollbarGrabHovered, ColorSchemeActive.ScrollbarGrabHovered ); 
+	ImGui::PushStyleColor( ImGuiCol_ScrollbarGrabHovered, ColorSchemeActive.ScrollbarGrabHovered );
 	ImGui::PushStyleColor( ImGuiCol_ScrollbarGrabActive, ColorSchemeActive.ScrollbarGrabActive );
 
-	ImGui::BeginChild( "text-history" , ImVec2( ChatSchemeActive.TextHistorySizeX, ChatSchemeActive.TextHistorySizeY ), false );
+	ImGui::BeginChild( "text-history", ImVec2( ChatSchemeActive.TextHistorySizeX, ChatSchemeActive.TextHistorySizeY ), false );
 
 	ImGui::PopStyleColor( 4 );
 
@@ -670,7 +682,7 @@ void CSourceChat::DrawTextHistory( void )
 	ImGui::PushStyleColor( ImGuiCol_Text, ColorSchemeActive.Text ); // Text
 	ImGui::PushStyleColor( ImGuiCol_TextSelectedBg, ColorSchemeActive.SelectedText ); // Selected Text Background color
 	ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 0 ) ); // Background (should be invisible if we keep BeginChild)
-	
+
 	if ( m_TextOpacity.size() > 0 )
 		ImGui::TextDontIgnoreColorAbsence = true;
 
@@ -851,7 +863,7 @@ void CSourceChat::DrawKeyboardLayout( const char *pszLayoutName )
 	ImVec2 text_size = ImGui::CalcTextSize( pszLayoutName );
 
 	ImGui::BeginChild( "##kb-layout", ImVec2( ChatSchemeActive.KeyboardLayoutSizeX, ChatSchemeActive.KeyboardLayoutSizeY ) );
-	ImGui::SetCursorPosX( (float)( ( (int)ChatSchemeActive.KeyboardLayoutSizeX / 2 ) - (int)text_size.x / 2 )); // center alignment
+	ImGui::SetCursorPosX( (float)( ( (int)ChatSchemeActive.KeyboardLayoutSizeX / 2 ) - (int)text_size.x / 2 ) ); // center alignment
 	ImGui::SetCursorPosY( 0.f );
 	ImGui::TextUnformatted( pszLayoutName );
 	ImGui::EndChild();
@@ -915,7 +927,7 @@ void CSourceChat::PrintMessage( int client, const char *pszMessage, int src )
 	if ( sMessage.back() != '\n' )
 		sMessage += "\n";
 
-	pszMessagePos = PushMessageToBuffer( m_szHistoryBuffer, CHAT_HISTORY_BUFFER_SIZE - 1, sMessage.c_str(), &shiftQuantity);
+	pszMessagePos = PushMessageToBuffer( m_szHistoryBuffer, CHAT_HISTORY_BUFFER_SIZE - 1, sMessage.c_str(), &shiftQuantity );
 
 	if ( shiftQuantity > 0 )
 	{
@@ -926,7 +938,7 @@ void CSourceChat::PrintMessage( int client, const char *pszMessage, int src )
 		RemoveInvalidTextOpacity();
 	}
 
-	AddTextOpacity( pszMessagePos, g_pEngineFuncs->GetClientTime() );
+	AddTextOpacity( pszMessagePos, GetTime() );
 
 	switch ( src )
 	{
@@ -1056,8 +1068,6 @@ char *CSourceChat::PushMessageToBuffer( char *buffer, int maxsize, const char *m
 
 	if ( cursize == maxsize ) // buffer is filled
 	{
-		//DevMsg( "cursize == maxsize\n" );
-
 		int msgsize_tmp = msgsize;
 		const char *msg_tmp = msg;
 
@@ -1083,8 +1093,6 @@ char *CSourceChat::PushMessageToBuffer( char *buffer, int maxsize, const char *m
 	}
 	else if ( leftSpace >= msgsize ) // we can just copy msg to buffer with some shift
 	{
-		//DevMsg( "leftSpace >= msgsize\n" );
-
 		memcpy( buffer + cursize, msg, msgsize );
 
 		*shift_quantity = 0;
@@ -1094,8 +1102,6 @@ char *CSourceChat::PushMessageToBuffer( char *buffer, int maxsize, const char *m
 	}
 	else /* if ( leftSpace < msgsize ) */
 	{
-		//DevMsg( "leftSpace < msgsize\n" );
-
 		if ( msgsize <= maxsize )
 		{
 			char *shift_src = (char *)buffer + ( cursize - ( maxsize - msgsize ) );
@@ -1111,8 +1117,6 @@ char *CSourceChat::PushMessageToBuffer( char *buffer, int maxsize, const char *m
 		}
 		else // message larger than buffer, truncate
 		{
-			//DevMsg( "msgsize > maxsize\n" );
-
 			memcpy( buffer, (char *)msg + ( msgsize - maxsize ), maxsize );
 
 			*shift_quantity = maxsize;
@@ -1124,8 +1128,6 @@ char *CSourceChat::PushMessageToBuffer( char *buffer, int maxsize, const char *m
 	/*
 	else if ( msgsize == maxsize ) // message size matches buffer size
 	{
-		//DevMsg("msgsize == maxsize\n");
-
 		memcpy( (char *)buffer, (char *)msg, msgsize );
 		buffer[maxsize] = '\0';
 	}
@@ -1427,7 +1429,7 @@ void CSourceChat::FadeThink( void )
 			//}
 			//else
 			//{
-				textOpacity.alpha = textAlphaInt;
+			textOpacity.alpha = textAlphaInt;
 			//}
 		}
 	}
@@ -1609,7 +1611,7 @@ void CSourceChat::OnOpen( bool bTeamChat )
 
 	m_bWasOpenedRightNow = true;
 
-	m_flOpenTime = g_pEngineFuncs->GetClientTime();
+	m_flOpenTime = GetTime();
 }
 
 //-----------------------------------------------------------------------------
@@ -1624,7 +1626,7 @@ void CSourceChat::OnClose( void )
 	g_pClientFuncs->IN_ClearStates();
 	SetCursorPos( int( m_flWindowWidth ) / 2, int( m_flWindowHeight ) / 2 );
 
-	m_flCloseTime = g_pEngineFuncs->GetClientTime();
+	m_flCloseTime = GetTime();
 }
 
 //-----------------------------------------------------------------------------
@@ -1637,9 +1639,10 @@ bool CSourceChat::Load( void )
 	bool ScanOK = true;
 
 	void *pfnSoundEngine;
+	void *pfnHost_FilterTime;
 
 	DEFINE_PATTERNS_FUTURE( fKey_Event );
-	DEFINE_PATTERNS_FUTURE( fm_pSoundEngine );
+	DEFINE_PATTERNS_FUTURE( fpSoundEngine );
 	DEFINE_PATTERNS_FUTURE( fIN_Move );
 	DEFINE_PATTERNS_FUTURE( fGetClientColor );
 	DEFINE_PATTERNS_FUTURE( fCHudTextMessage__MsgFunc_TextMsg );
@@ -1648,8 +1651,10 @@ bool CSourceChat::Load( void )
 	DEFINE_PATTERNS_FUTURE( fCVoiceStatus__IsPlayerBlocked );
 
 	// Find signatures
+	auto fHost_FilterTime = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::Host_FilterTime );
+
 	MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::Key_Event, fKey_Event );
-	MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::m_pSoundEngine, fm_pSoundEngine );
+	MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::m_pSoundEngine, fpSoundEngine );
 	MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::IN_Move, fIN_Move );
 	MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::GetClientColor, fGetClientColor );
 	MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::CHudTextMessage__MsgFunc_TextMsg, fCHudTextMessage__MsgFunc_TextMsg );
@@ -1657,86 +1662,96 @@ bool CSourceChat::Load( void )
 	MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::GetClientVoiceMgr, fGetClientVoiceMgr );
 	MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::CVoiceStatus__IsPlayerBlocked, fCVoiceStatus__IsPlayerBlocked );
 
+	if ( ( pfnHost_FilterTime = fHost_FilterTime.get() ) == NULL )
+	{
+		PluginLogError( g_pSourceChatPlugin, "Couldn't find function \"Host_FilterTime\"\n" );
+		ScanOK = false;
+	}
+	else
+	{
+		PluginLogMsg( g_pSourceChatPlugin, "Found function \"Host_FilterTime\" (0x%X)\n", pfnHost_FilterTime );
+	}
+
 	if ( ( m_pfnKey_Event = MemoryUtils()->GetPatternFutureValue( fKey_Event, &patternIndex ) ) == NULL )
 	{
-		Warning("[Source Chat] Couldn't find function \"Key_Event\"\n");
+		PluginLogError( g_pSourceChatPlugin, "Couldn't find function \"Key_Event\"\n" );
 		ScanOK = false;
 	}
 	else
 	{
-		DevMsg( "[Source Chat] Found function \"Key_Event\" for version \"%s\"\n", GET_PATTERN_NAME_BY_INDEX( Patterns::Hardware::Key_Event, patternIndex ) );
+		PluginLogMsg( g_pSourceChatPlugin, "Found function \"Key_Event\" (0x%X) for version \"%s\"\n", m_pfnKey_Event, GET_PATTERN_NAME_BY_INDEX( Patterns::Hardware::Key_Event, patternIndex ) );
 	}
-	
-	if ( ( pfnSoundEngine = MemoryUtils()->GetPatternFutureValue( fm_pSoundEngine, &patternIndex ) ) == NULL )
+
+	if ( ( pfnSoundEngine = MemoryUtils()->GetPatternFutureValue( fpSoundEngine, &patternIndex ) ) == NULL )
 	{
-		Warning("[Source Chat] Couldn't find variable \"m_pSoundEngine\"\n");
+		PluginLogError( g_pSourceChatPlugin, "Couldn't find variable \"m_pSoundEngine\"\n" );
 		ScanOK = false;
 	}
 	else
 	{
-		DevMsg( "[Source Chat] Found variable \"m_pSoundEngine\" for version \"%s\"\n", GET_PATTERN_NAME_BY_INDEX( Patterns::Client::m_pSoundEngine, patternIndex ) );
+		PluginLogMsg( g_pSourceChatPlugin, "Found variable \"m_pSoundEngine\" (0x%X) for version \"%s\"\n", pfnSoundEngine, GET_PATTERN_NAME_BY_INDEX( Patterns::Client::m_pSoundEngine, patternIndex ) );
 	}
-	
+
 	if ( ( m_pfnIN_Move = MemoryUtils()->GetPatternFutureValue( fIN_Move, &patternIndex ) ) == NULL )
 	{
-		Warning("[Source Chat] Couldn't find function \"IN_Move\"\n");
+		PluginLogError( g_pSourceChatPlugin, "Couldn't find function \"IN_Move\"\n" );
 		ScanOK = false;
 	}
 	else
 	{
-		DevMsg( "[Source Chat] Found function \"IN_Move\" for version \"%s\"\n", GET_PATTERN_NAME_BY_INDEX( Patterns::Client::IN_Move, patternIndex ) );
+		PluginLogMsg( g_pSourceChatPlugin, "Found function \"IN_Move\" (0x%X) for version \"%s\"\n", m_pfnIN_Move, GET_PATTERN_NAME_BY_INDEX( Patterns::Client::IN_Move, patternIndex ) );
 	}
-	
+
 	if ( ( m_pfnGetClientColor = (GetClientColorFn)MemoryUtils()->GetPatternFutureValue( fGetClientColor, &patternIndex ) ) == NULL )
 	{
-		Warning("[Source Chat] Couldn't find function \"GetClientColor\"\n");
+		PluginLogError( g_pSourceChatPlugin, "Couldn't find function \"GetClientColor\"\n" );
 		ScanOK = false;
 	}
 	else
 	{
-		DevMsg( "[Source Chat] Found function \"GetClientColor\" for version \"%s\"\n", GET_PATTERN_NAME_BY_INDEX( Patterns::Client::GetClientColor, patternIndex ) );
+		PluginLogMsg( g_pSourceChatPlugin, "Found function \"GetClientColor\" (0x%X) for version \"%s\"\n", m_pfnGetClientColor, GET_PATTERN_NAME_BY_INDEX( Patterns::Client::GetClientColor, patternIndex ) );
 	}
-	
+
 	if ( ( m_pfnCHudTextMessage__MsgFunc_TextMsg = MemoryUtils()->GetPatternFutureValue( fCHudTextMessage__MsgFunc_TextMsg, &patternIndex ) ) == NULL )
 	{
-		Warning("[Source Chat] Couldn't find function \"CHudTextMessage::MsgFunc_TextMsg\"\n");
+		PluginLogError( g_pSourceChatPlugin, "Couldn't find function \"CHudTextMessage::MsgFunc_TextMsg\"\n" );
 		ScanOK = false;
 	}
 	else
 	{
-		DevMsg( "[Source Chat] Found function \"CHudTextMessage::MsgFunc_TextMsg\" for version \"%s\"\n", GET_PATTERN_NAME_BY_INDEX( Patterns::Client::CHudTextMessage__MsgFunc_TextMsg, patternIndex ) );
+		PluginLogMsg( g_pSourceChatPlugin, "Found function \"CHudTextMessage::MsgFunc_TextMsg\" (0x%X) for version \"%s\"\n", m_pfnCHudTextMessage__MsgFunc_TextMsg, GET_PATTERN_NAME_BY_INDEX( Patterns::Client::CHudTextMessage__MsgFunc_TextMsg, patternIndex ) );
 	}
-	
+
 	if ( ( m_pfnCClient_SoundEngine__Play2DSound = (CClient_SoundEngine__Play2DSoundFn)MemoryUtils()->GetPatternFutureValue( fCClient_SoundEngine__Play2DSound, &patternIndex ) ) == NULL )
 	{
-		Warning("[Source Chat] Couldn't find function \"CClient_SoundEngine::Play2DSound\"\n");
+		PluginLogError( g_pSourceChatPlugin, "Couldn't find function \"CClient_SoundEngine::Play2DSound\"\n" );
 		ScanOK = false;
 	}
 	else
 	{
-		DevMsg( "[Source Chat] Found function \"CClient_SoundEngine::Play2DSound\" for version \"%s\"\n", GET_PATTERN_NAME_BY_INDEX( Patterns::Client::CClient_SoundEngine__Play2DSound, patternIndex ) );
+		PluginLogMsg( g_pSourceChatPlugin, "Found function \"CClient_SoundEngine::Play2DSound\" (0x%X) for version \"%s\"\n", m_pfnCClient_SoundEngine__Play2DSound, GET_PATTERN_NAME_BY_INDEX( Patterns::Client::CClient_SoundEngine__Play2DSound, patternIndex ) );
 	}
-	
+
 	if ( ( m_pfnGetClientVoiceMgr = (GetClientVoiceMgrFn)MemoryUtils()->GetPatternFutureValue( fGetClientVoiceMgr, &patternIndex ) ) == NULL )
 	{
-		Warning("[Source Chat] Couldn't find function \"GetClientVoiceMgr\"\n");
+		PluginLogError( g_pSourceChatPlugin, "Couldn't find function \"GetClientVoiceMgr\"\n" );
 		ScanOK = false;
 	}
 	else
 	{
 		m_pfnGetClientVoiceMgr = (GetClientVoiceMgrFn)MemoryUtils()->CalcAbsoluteAddress( m_pfnGetClientVoiceMgr ); // CALL [GetClientVoiceMgr]
 
-		DevMsg( "[Source Chat] Found function \"GetClientVoiceMgr\" for version \"%s\"\n", GET_PATTERN_NAME_BY_INDEX( Patterns::Client::GetClientVoiceMgr, patternIndex ) );
+		PluginLogMsg( g_pSourceChatPlugin, "Found function \"GetClientVoiceMgr\" (0x%X) for version \"%s\"\n", m_pfnGetClientVoiceMgr, GET_PATTERN_NAME_BY_INDEX( Patterns::Client::GetClientVoiceMgr, patternIndex ) );
 	}
-	
+
 	if ( ( m_pfnCVoiceStatus__IsPlayerBlocked = (CVoiceStatus__IsPlayerBlockedFn)MemoryUtils()->GetPatternFutureValue( fCVoiceStatus__IsPlayerBlocked, &patternIndex ) ) == NULL )
 	{
-		Warning("[Source Chat] Couldn't find function \"CVoiceStatus::IsPlayerBlocked\"\n");
+		PluginLogError( g_pSourceChatPlugin, "Couldn't find function \"CVoiceStatus::IsPlayerBlocked\"\n" );
 		ScanOK = false;
 	}
 	else
 	{
-		DevMsg( "[Source Chat] Found function \"CVoiceStatus::IsPlayerBlocked\" for version \"%s\"\n", GET_PATTERN_NAME_BY_INDEX( Patterns::Client::CVoiceStatus__IsPlayerBlocked, patternIndex ) );
+		PluginLogMsg( g_pSourceChatPlugin, "Found function \"CVoiceStatus::IsPlayerBlocked\" (0x%X) for version \"%s\"\n", m_pfnCVoiceStatus__IsPlayerBlocked, GET_PATTERN_NAME_BY_INDEX( Patterns::Client::CVoiceStatus__IsPlayerBlocked, patternIndex ) );
 	}
 
 	if ( !ScanOK )
@@ -1747,7 +1762,7 @@ bool CSourceChat::Load( void )
 
 	if ( !m_pfnSDL_PollEvent )
 	{
-		Warning( "Couldn't get function \"SDL_PollEvent\"\n" );
+		PluginLogError( g_pSourceChatPlugin, "Couldn't get function \"SDL_PollEvent\"\n" );
 		return false;
 	}
 
@@ -1755,7 +1770,7 @@ bool CSourceChat::Load( void )
 
 	if ( !m_pfnSDL_GL_SwapWindow )
 	{
-		Warning( "Couldn't get function \"SDL_GL_SwapWindow\"\n" );
+		PluginLogError( g_pSourceChatPlugin, "Couldn't get function \"SDL_GL_SwapWindow\"\n" );
 		return false;
 	}
 #else
@@ -1763,7 +1778,7 @@ bool CSourceChat::Load( void )
 
 	if ( !m_pfnwglSwapBuffers )
 	{
-		Warning( "Couldn't get function \"wglSwapBuffers\"\n" );
+		PluginLogError( g_pSourceChatPlugin, "Couldn't get function \"wglSwapBuffers\"\n" );
 		return false;
 	}
 #endif
@@ -1772,7 +1787,7 @@ bool CSourceChat::Load( void )
 
 	if ( !m_pfnSetCursorPos )
 	{
-		Warning( "Couldn't get function \"SetCursorPos\"\n" );
+		PluginLogError( g_pSourceChatPlugin, "Couldn't get function \"SetCursorPos\"\n" );
 		return false;
 	}
 
@@ -1812,6 +1827,32 @@ bool CSourceChat::Load( void )
 	// Get pointer to sound engine
 	m_pSoundEngine = (void **)*(unsigned long *)( (unsigned char *)pfnSoundEngine + 1 );
 
+	// Get realtime pointer
+	ud_t inst;
+
+	bool bFoundFST = false;
+
+	MemoryUtils()->InitDisasm( &inst, pfnHost_FilterTime, 32, 128 );
+
+	while ( MemoryUtils()->Disassemble( &inst ) )
+	{
+		if ( inst.mnemonic == UD_Ifst && inst.operand[ 0 ].type == UD_OP_MEM && !bFoundFST )
+		{
+			bFoundFST = true;
+		}
+		else if ( inst.mnemonic == UD_Ifadd && inst.operand[ 0 ].type == UD_OP_MEM && bFoundFST )
+		{
+			m_dbRealtime = reinterpret_cast<double *>( inst.operand[ 0 ].lval.udword );
+			break;
+		}
+	}
+
+	if ( m_dbRealtime == NULL )
+	{
+		PluginLogError( g_pSourceChatPlugin, "Failed to get \"realtime\"\n" );
+		return false;
+	}
+
 	return true;
 }
 
@@ -1828,7 +1869,7 @@ void CSourceChat::PostLoad( void )
 	m_flTextHistoryDefaultColor[ 0 ] = (float)( ( ColorSchemeActive.Text >> IM_COL32_R_SHIFT ) & 0xFF ) / 255.f;
 	m_flTextHistoryDefaultColor[ 1 ] = (float)( ( ColorSchemeActive.Text >> IM_COL32_G_SHIFT ) & 0xFF ) / 255.f;
 	m_flTextHistoryDefaultColor[ 2 ] = (float)( ( ColorSchemeActive.Text >> IM_COL32_B_SHIFT ) & 0xFF ) / 255.f;
-	
+
 	// Get some cvars
 	hud_draw = CVar()->FindCvar( "hud_draw" );
 
