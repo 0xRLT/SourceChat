@@ -52,5 +52,6 @@ public:
 };
 
 extern CSourceChatPlugin g_SourceChatPlugin;
+extern CSourceChatPlugin *g_pSourceChatPlugin;
 
 #endif // SOURCECHAT_PLUGIN_H

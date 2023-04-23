@@ -12,6 +12,7 @@
 //-----------------------------------------------------------------------------
 
 CSourceChatPlugin g_SourceChatPlugin;
+CSourceChatPlugin *g_pSourceChatPlugin = &g_SourceChatPlugin;
 
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CSourceChatPlugin, IClientPlugin, CLIENT_PLUGIN_INTERFACE_VERSION, g_SourceChatPlugin );
 
@@ -30,7 +31,7 @@ bool CSourceChatPlugin::Load( CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *
 
 	if ( !LoadFeatures() )
 	{
-		Warning( "[Source Chat] Failed to initialize one of features\n" );
+		Warning( "[Source Chat] Failed to initialize one of features. Check \"svenmod.log\" for detailed information\n" );
 		return false;
 	}
 
@@ -114,7 +115,7 @@ const char *CSourceChatPlugin::GetAuthor( void )
 
 const char *CSourceChatPlugin::GetVersion( void )
 {
-	return "0.1.3b";
+	return "0.1.4b";
 }
 
 const char *CSourceChatPlugin::GetDescription( void )
