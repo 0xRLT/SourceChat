@@ -4,6 +4,8 @@ namespace Patterns
 {
 	namespace Hardware
 	{
+		DEFINE_PATTERN( Host_FilterTime, "E9 ? ? ? ? 90 90 90 8B 0D ? ? ? ? D8" );
+
 		DEFINE_PATTERNS_1( Key_Event,
 						   "5.25",
 						   "81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 00 04 00 00 56 8B B4 24 0C 04 00 00 81 FE" );
