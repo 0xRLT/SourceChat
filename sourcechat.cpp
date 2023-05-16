@@ -378,9 +378,6 @@ DECLARE_CLASS_FUNC( int, HOOKED_CHudTextMessage__MsgFunc_TextMsg, void *thisptr,
 		if ( buffer[ 0 ] != '\0' )
 			g_SourceChat.PrintMessage( -1, buffer, 0 );
 
-		//if ( msg.length() > 256 )
-		buffer [M_ARRAYSIZE( buffer ) - 1] = '\0';
-
 		return 0;
 	}
 
