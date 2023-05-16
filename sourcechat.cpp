@@ -322,6 +322,8 @@ DECLARE_CLASS_FUNC( int, HOOKED_CHudTextMessage__MsgFunc_TextMsg, void *thisptr,
 
 		std::string msg = message.ReadString();
 
+		size_t length = strlen( msg.c_str() ) + 1;
+
 		// #1
 		str = message.ReadString();
 
@@ -349,7 +351,11 @@ DECLARE_CLASS_FUNC( int, HOOKED_CHudTextMessage__MsgFunc_TextMsg, void *thisptr,
 		switch ( formattingStrings.size() )
 		{
 		case 0:
-			strcpy_s( buffer, M_ARRAYSIZE( buffer ), msg.c_str() );
+			if ( length >= M_ARRAYSIZE( buffer ) )
+				length = M_ARRAYSIZE( buffer ) - 1;
+
+			memcpy( buffer, msg.c_str(), length);
+			buffer [length] = '\0';
 			break;
 
 		case 1:
@@ -371,6 +377,9 @@ DECLARE_CLASS_FUNC( int, HOOKED_CHudTextMessage__MsgFunc_TextMsg, void *thisptr,
 
 		if ( buffer[ 0 ] != '\0' )
 			g_SourceChat.PrintMessage( -1, buffer, 0 );
+
+		//if ( msg.length() > 256 )
+		buffer [M_ARRAYSIZE( buffer ) - 1] = '\0';
 
 		return 0;
 	}
